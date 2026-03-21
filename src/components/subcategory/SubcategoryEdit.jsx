@@ -2,58 +2,61 @@ import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
 import Toast from '../Toast';
 
-const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) => {
-  const [editedCategory, setEditedCategory] = useState({
+const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, isAddingSubcategory }) => {
+  const [editedSubcategory, setEditedSubcategory] = useState({
     name: '',
     description: '',
+    categoryId: '',
     image: null,
     imageUrl: null
   });
   const [toast, setToast] = useState(null);
 
-  // Update the form when category prop changes or when switching between add/edit modes
+  // Update the form when subcategory prop changes or when switching between add/edit modes
   useEffect(() => {
-    console.log('CategoryEdit - category prop:', category);
-    console.log('CategoryEdit - isAddingCategory:', isAddingCategory);
+    console.log('SubcategoryEdit - subcategory prop:', subcategory);
+    console.log('SubcategoryEdit - isAddingSubcategory:', isAddingSubcategory);
     
-    if (isAddingCategory) {
-      // Clear the form for adding a new category
-      setEditedCategory({
+    if (isAddingSubcategory) {
+      // Clear the form for adding a new subcategory
+      setEditedSubcategory({
         name: '',
         description: '',
+        categoryId: categories[0]?.id || categories[0]?._id || '',
         image: null,
         imageUrl: null
       });
-    } else if (category) {
-      // Populate the form with existing category data for editing
+    } else if (subcategory) {
+      // Populate the form with existing subcategory data for editing
       // Construct full image URL
       let imageUrl = null;
-      if (category.img) {
-        imageUrl = category.img.startsWith('http') 
-          ? category.img 
-          : `https://zegapi.zeggo.in/${category.img.replace(/^\//, '')}`;
-      } else if (category.image) {
-        imageUrl = category.image.startsWith('http') 
-          ? category.image 
-          : `https://zegapi.zeggo.in/${category.image.replace(/^\//, '')}`;
-      } else if (category.imageUrl) {
-        imageUrl = category.imageUrl;
+      if (subcategory.img) {
+        imageUrl = subcategory.img.startsWith('http') 
+          ? subcategory.img 
+          : `https://zegapi.zeggo.in/${subcategory.img.replace(/^\//, '')}`;
+      } else if (subcategory.image) {
+        imageUrl = subcategory.image.startsWith('http') 
+          ? subcategory.image 
+          : `https://zegapi.zeggo.in/${subcategory.image.replace(/^\//, '')}`;
+      } else if (subcategory.imageUrl) {
+        imageUrl = subcategory.imageUrl;
       }
       
-      console.log('CategoryEdit - Constructed imageUrl:', imageUrl);
+      console.log('SubcategoryEdit - Constructed imageUrl:', imageUrl);
       
-      setEditedCategory({
-        name: category.name || '',
-        description: category.description || '',
-        image: category.image || null,
+      setEditedSubcategory({
+        name: subcategory.name || '',
+        description: subcategory.description || '',
+        categoryId: subcategory.categoryId || subcategory.category?.id || subcategory.category?._id || '',
+        image: subcategory.image || null,
         imageUrl: imageUrl // Store the full URL for preview
       });
     }
-  }, [category, isAddingCategory]);
+  }, [subcategory, isAddingSubcategory, categories]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setEditedCategory(prev => ({
+    setEditedSubcategory(prev => ({
       ...prev,
       [name]: value
     }));
@@ -62,7 +65,7 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setEditedCategory(prev => ({
+      setEditedSubcategory(prev => ({
         ...prev,
         image: file
       }));
@@ -71,77 +74,51 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
 
   const handleSave = async () => {
     try {
-      if (isAddingCategory) {
-        // POST - Create new category
+      if (isAddingSubcategory) {
+        // POST - Create new subcategory
         const formData = new FormData();
-        formData.append('name', editedCategory.name);
-        formData.append('des', editedCategory.description);  // API uses 'des' not 'description'
-        if (editedCategory.image && typeof editedCategory.image !== 'string') {
-          formData.append('img', editedCategory.image);  // API uses 'img' not 'image'
+        formData.append('name', editedSubcategory.name);
+        formData.append('description', editedSubcategory.description);
+        formData.append('categoryId', editedSubcategory.categoryId);
+        if (editedSubcategory.image && typeof editedSubcategory.image !== 'string') {
+          formData.append('image', editedSubcategory.image);
         }
 
-        console.log('Sending POST request with FormData:', {
-          name: editedCategory.name,
-          des: editedCategory.description,
-          hasImage: !!editedCategory.image && typeof editedCategory.image !== 'string'
-        });
-
-        const response = await api.post('/api/zeggo/categories', formData, {
+        const response = await api.post('/api/zeggo/subcategories', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
+        console.log('POST Subcategory Response:', response.data);
         
-        console.log('POST Category Response:', response.data);
-        
-        const successMessage = response.data?.message || 'Category created successfully!';
+        const successMessage = response.data?.message || 'Subcategory created successfully!';
         setToast({ message: successMessage, type: 'success' });
-        onSave({ ...editedCategory, id: response.data?.data?.id || response.data?.id || response.data?.data?._id });
+        onSave({ ...editedSubcategory, id: response.data?.data?.id || response.data?.id });
       } else {
-        // PUT - Update existing category
-        const categoryId = category.id || category._id;
+        // PUT - Update existing subcategory
+        const subcategoryId = subcategory.id || subcategory._id;
         const formData = new FormData();
-        formData.append('name', editedCategory.name);
-        formData.append('des', editedCategory.description);  // API uses 'des'
-        if (editedCategory.image && typeof editedCategory.image !== 'string') {
-          formData.append('img', editedCategory.image);  // API uses 'img'
+        formData.append('name', editedSubcategory.name);
+        formData.append('description', editedSubcategory.description);
+        formData.append('categoryId', editedSubcategory.categoryId);
+        if (editedSubcategory.image && typeof editedSubcategory.image !== 'string') {
+          formData.append('image', editedSubcategory.image);
         }
 
-        console.log('Sending PUT request to:', `/api/zeggo/categories/${categoryId}`);
-        console.log('FormData:', {
-          name: editedCategory.name,
-          des: editedCategory.description,
-          hasImage: !!editedCategory.image && typeof editedCategory.image !== 'string'
-        });
-
-        const response = await api.put(`/api/zeggo/categories/${categoryId}`, formData, {
+        const response = await api.put(`/api/zeggo/subcategories/${subcategoryId}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
+        console.log('PUT Subcategory Response:', response.data);
         
-        console.log('PUT Category Response:', response.data);
-        
-        const successMessage = response.data?.message || 'Category updated successfully!';
+        const successMessage = response.data?.message || 'Subcategory updated successfully!';
         setToast({ message: successMessage, type: 'success' });
-        onSave(editedCategory);
+        onSave(editedSubcategory);
       }
     } catch (err) {
-      console.error('❌ Error saving category:', err);
-      console.error('Error response:', err.response);
-      console.error('Error data:', err.response?.data);
-      console.error('Error status:', err.response?.status);
-      
-      let errorMessage = 'Failed to save category';
-      
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.data?.error) {
-        errorMessage = err.response.data.error;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
+      console.error('Error saving subcategory:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to save subcategory';
       setToast({ message: errorMessage, type: 'error' });
     }
   };
@@ -172,7 +149,7 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
           {/* Header */}
           <div className="px-4 py-3 bg-[#464859] flex justify-between items-center border-b border-gray-600">
             <h3 className="text-lg leading-6 font-medium text-white">
-              {isAddingCategory ? 'Add Category' : 'Edit Category'}
+              {isAddingSubcategory ? 'Add Subcategory' : 'Edit Subcategory'}
             </h3>
             <button
               onClick={onCancel}
@@ -184,32 +161,53 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
 
           {/* Body */}
           <div className="px-4 py-5 flex-grow overflow-y-auto scrollbar-hide">
+            {/* Category Selection */}
+            <div className="mb-4">
+              <label htmlFor="categoryId" className="block text-sm font-medium text-white mb-1">
+                Parent Category
+              </label>
+              <select
+                id="categoryId"
+                name="categoryId"
+                value={editedSubcategory.categoryId}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-600 rounded-md px-3 py-2 border bg-gray-700 text-white"
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id || category._id} value={category.id || category._id}>
+                    {category.name || 'Untitled'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Image Upload Box */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-white mb-2">
-                Category Image
+                Subcategory Image
               </label>
               <div className="relative group">
                 <div className="flex items-center justify-center w-full">
                   <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-700 hover:bg-gray-600 transition-all overflow-hidden">
                     {(() => {
-                      console.log('Render check - imageUrl:', editedCategory.imageUrl);
-                      console.log('Render check - image:', editedCategory.image);
-                      console.log('Render check - image type:', typeof editedCategory.image);
+                      console.log('Render check - imageUrl:', editedSubcategory.imageUrl);
+                      console.log('Render check - image:', editedSubcategory.image);
+                      console.log('Render check - image type:', typeof editedSubcategory.image);
                       
-                      if (editedCategory.imageUrl) {
+                      if (editedSubcategory.imageUrl) {
                         return (
                           <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
                             <img 
-                              src={editedCategory.imageUrl} 
-                              alt="Current Category" 
+                              src={editedSubcategory.imageUrl} 
+                              alt="Current Subcategory" 
                               className="w-full h-48 object-contain rounded-lg mb-3 shadow-lg"
                               onError={(e) => {
-                                console.error('Failed to load image:', editedCategory.imageUrl);
+                                console.error('Failed to load image:', editedSubcategory.imageUrl);
                                 e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error';
                               }}
                               onLoad={() => {
-                                console.log('Image loaded successfully:', editedCategory.imageUrl);
+                                console.log('Image loaded successfully:', editedSubcategory.imageUrl);
                               }}
                             />
                             <div className="absolute bottom-3 left-0 right-0 flex justify-center">
@@ -219,13 +217,13 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
                             </div>
                           </div>
                         );
-                      } else if (editedCategory.image && typeof editedCategory.image !== 'string') {
+                      } else if (editedSubcategory.image && typeof editedSubcategory.image !== 'string') {
                         return (
                           <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <svg className="w-16 h-16 mb-4 text-blue-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                               <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                             </svg>
-                            <p className="text-base text-white font-medium">{editedCategory.image.name}</p>
+                            <p className="text-base text-white font-medium">{editedSubcategory.image.name}</p>
                             <p className="text-sm text-gray-400 mt-2">New file selected</p>
                           </div>
                         );
@@ -259,16 +257,16 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
 
             <div className="mb-4">
               <label htmlFor="name" className="block text-sm font-medium text-white mb-1">
-                Category Name
+                Subcategory Name
               </label>
               <input
                 type="text"
                 name="name"
                 id="name"
-                value={editedCategory.name}
+                value={editedSubcategory.name}
                 onChange={handleChange}
                 className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-600 rounded-md px-3 py-2 border bg-gray-700 text-white"
-                placeholder="Enter category name"
+                placeholder="Enter subcategory name"
               />
             </div>
 
@@ -279,11 +277,11 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
               <textarea
                 name="description"
                 id="description"
-                value={editedCategory.description}
+                value={editedSubcategory.description}
                 onChange={handleChange}
                 rows="3"
                 className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-600 rounded-md px-3 py-2 border bg-gray-700 text-white"
-                placeholder="Enter category description"
+                placeholder="Enter subcategory description"
               />
             </div>
           </div>
@@ -302,7 +300,7 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
               onClick={handleSave}
               className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
             >
-              {isAddingCategory ? 'Add Category' : 'Save Changes'}
+              {isAddingSubcategory ? 'Add Subcategory' : 'Save Changes'}
             </button>
           </div>
         </div>
@@ -312,4 +310,4 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
   );
 };
 
-export default CategoryEdit;
+export default SubcategoryEdit;

@@ -1,10 +1,10 @@
-import React from "react";
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Routes,
   Route,
   Navigate
 } from "react-router-dom";
+
 
 import Login from "./components/Login";
 import Layout from "./components/Layout";
@@ -14,6 +14,8 @@ import DashboardContent from "./components/dashboard/Dashboard";
 import User from "./components/user/User";
 import Product from "./components/product/Product";
 import Category from "./components/category/Category";
+import Subcategory from "./components/subcategory/Subcategory";
+
 import TrendingCategory from "./components/trendingcategory/TrendingCategory";
 import Notification from "./components/notification/Notification";
 import Banner from "./components/banner/Banner";
@@ -37,6 +39,7 @@ function App() {
           <Route path="user" element={<User />} />
           <Route path="product" element={<Product />} />
           <Route path="category" element={<Category />} />
+          <Route path="subcategory" element={<Subcategory />} />
           <Route path="trendingcategory" element={<TrendingCategory />} />
           <Route path="notification" element={<Notification />} />
           <Route path="banner" element={<Banner />} />

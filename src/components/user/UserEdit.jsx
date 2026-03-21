@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../config/api';
+import Toast from '../Toast';
 
 const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
   const [editedUser, setEditedUser] = useState({
@@ -7,6 +9,7 @@ const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
     role: '',
     status: 'Active'
   });
+  const [toast, setToast] = useState(null);
 
   // Update the form when user prop changes or when switching between add/edit modes
   useEffect(() => {
@@ -37,14 +40,48 @@ const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
     }));
   };
 
-  const handleSave = () => {
-    onSave(editedUser);
+  const handleSave = async () => {
+    try {
+      if (isAddingUser) {
+        // POST - Create new user
+        const response = await api.post('/api/zeggo/users', editedUser);
+        console.log('POST User Response:', response.data);
+        
+        const successMessage = response.data?.message || 'User created successfully!';
+        setToast({ message: successMessage, type: 'success' });
+        onSave({ ...editedUser, id: response.data?.data?.id || response.data?.id });
+      } else {
+        // PUT/PATCH - Update existing user
+        const userId = user.id || user._id;
+        const response = await api.put(`/api/zeggo/users/${userId}`, editedUser);
+        console.log('PUT User Response:', response.data);
+        
+        const successMessage = response.data?.message || 'User updated successfully!';
+        setToast({ message: successMessage, type: 'success' });
+        onSave(editedUser);
+      }
+    } catch (err) {
+      console.error('Error saving user:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to save user';
+      setToast({ message: errorMessage, type: 'error' });
+    }
   };
 
   // Don't render anything if not open
   if (!isOpen) return null;
 
   return (
+    <>
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      
+      {/* Fixed positioning container */}
     // Fixed positioning container
     <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Sidebar panel - slides from right */}
@@ -154,6 +191,7 @@ const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
