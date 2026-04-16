@@ -1,0 +1,257 @@
+/* ====================================
+   ZEGGO ADMIN PANEL - GLOBAL RESPONSIVE STYLES
+   ==================================== */
+
+/* === BASE STYLES === */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* === BUTTONS - RESPONSIVE === */
+button, .btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* All buttons become full-width on mobile */
+@media (max-width: 640px) {
+  button, 
+  .btn,
+  [type="button"],
+  [type="submit"] {
+    @apply w-full sm:w-auto;
+  }
+  
+  /* Button groups stack vertically on mobile */
+  .flex.gap-4 {
+    @apply flex-col gap-3;
+  }
+}
+
+/* === TABLES - RESPONSIVE === */
+table {
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  table {
+    font-size: 0.75rem;
+  }
+  
+  th, td {
+    @apply px-2 py-2;
+  }
+}
+
+/* Tables scroll horizontally on small screens */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* === INPUTS & FORMS - RESPONSIVE === */
+input, 
+select, 
+textarea {
+  font-size: 16px; /* Prevents zoom on iOS */
+  min-height: 44px; /* Touch-friendly height */
+}
+
+@media (max-width: 640px) {
+  input, 
+  select, 
+  textarea {
+    @apply text-sm;
+  }
+  
+  /* Form grids become single column */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    @apply grid-cols-1 gap-4;
+  }
+}
+
+/* === CARDS & CONTAINERS === */
+.card, 
+.bg-\[\#464859\] {
+  @apply rounded-lg shadow-md;
+}
+
+@media (max-width: 640px) {
+  .p-6 {
+    @apply p-4;
+  }
+}
+
+/* === TEXT RESPONSIVE === */
+h1 {
+  @apply text-xl sm:text-2xl md:text-3xl;
+}
+
+h2 {
+  @apply text-lg sm:text-xl md:text-2xl;
+}
+
+h3 {
+  @apply text-base sm:text-lg md:text-xl;
+}
+
+p {
+  @apply text-sm sm:text-base;
+}
+
+/* === UTILITY CLASSES === */
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch-friendly spacing */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* === MODALS - RESPONSIVE === */
+.modal-content {
+  @apply w-full max-w-2xl mx-4 sm:mx-auto;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    @apply fixed bottom-0 left-0 right-0 rounded-b-none;
+    max-height: 80vh;
+  }
+}
+
+/* === HEADER RESPONSIVE === */
+header {
+  @apply px-2 sm:px-4;
+}
+
+/* === SIDEBAR RESPONSIVE === */
+.sidebar-menu-item {
+  @apply py-2 px-3 text-sm;
+  min-height: 44px; /* Touch-friendly */
+}
+
+/* === PAGINATION RESPONSIVE === */
+.pagination {
+  @apply flex-wrap gap-2;
+}
+
+.pagination button {
+  @apply min-w-[40px] min-h-[40px];
+}
+
+/* === LOADING SPINNER === */
+.loading-spinner {
+  @apply w-6 h-6 sm:w-8 sm:h-8;
+}
+
+/* === TOAST NOTIFICATIONS === */
+.toast-container {
+  @apply fixed top-4 right-4 z-50;
+}
+
+.toast {
+  @apply w-full sm:w-96 mb-2;
+  min-width: 300px;
+  max-width: calc(100vw - 2rem);
+}
+
+/* === MEDIA QUERIES FOR SPECIFIC COMPONENTS === */
+
+/* Mobile First Approach */
+@media (max-width: 640px) {
+  /* Stack all horizontal layouts */
+  .flex-row {
+    @apply flex-col;
+  }
+  
+  .justify-between {
+    @apply gap-4;
+  }
+  
+  /* Full width containers */
+  .container {
+    @apply px-4;
+  }
+}
+
+/* Tablet Breakpoint */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* 2 column grids */
+  .md\:grid-cols-3,
+  .md\:grid-cols-4 {
+    @apply grid-cols-2;
+  }
+}
+
+/* Desktop Optimizations */
+@media (min-width: 1025px) {
+  /* Larger text on desktop */
+  .text-responsive {
+    @apply text-base lg:text-lg;
+  }
+}
+
+/* === PRINT STYLES === */
+@media print {
+  .no-print,
+  button,
+  .sidebar,
+  .header {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+  }
+}
+
+/* === ACCESSIBILITY === */
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* === DARK MODE OPTIMIZATIONS === */
+[data-theme='dark'] {
+  /* Better contrast for dark mode */
+  .text-gray-300 {
+    @apply text-gray-200;
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+@media (forced-colors: active) {
+  button,
+  a,
+  input:focus {
+    border: 2px solid currentColor;
+  }
+}

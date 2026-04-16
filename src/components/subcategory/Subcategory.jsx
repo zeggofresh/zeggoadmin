@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import SubcategoryEdit from './SubcategoryEdit';
-import Toast from '../Toast';
+import LoadingAnimation from '../LoadingAnimation';
+import useToast from '../../hooks/useToast';
 
 const Subcategory = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -17,7 +18,8 @@ const Subcategory = () => {
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]); // For dropdown
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
-  const [toast, setToast] = useState(null);
+  
+  const { showSuccess, showError } = useToast();
 
   // Fetch subcategories and categories on component mount
   useEffect(() => {
@@ -103,11 +105,11 @@ const Subcategory = () => {
       }
       
       // Show success message
-      setToast({ message: 'Subcategory deleted successfully', type: 'success' });
+      showSuccess('Subcategory deleted successfully');
     } catch (err) {
       console.error('Error deleting subcategory:', err);
       const errorMessage = err.response?.data?.message || 'Failed to delete subcategory';
-      setToast({ message: errorMessage, type: 'error' });
+      showError(errorMessage);
     } finally {
       // Reset state after deletion
       setShowDeleteModal(false);
@@ -153,15 +155,6 @@ const Subcategory = () => {
 
   return (
     <>
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-      
       <div className="p-6">
         <div className="bg-[#464859] rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
@@ -198,9 +191,8 @@ const Subcategory = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
-              <div className="col-span-full text-center py-8">
-                <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-400 mt-2">Loading subcategories...</p>
+              <div className="col-span-full">
+                <LoadingAnimation />
               </div>
             ) : error ? (
               <div className="col-span-full text-center py-8 text-red-400">
@@ -253,8 +245,8 @@ const Subcategory = () => {
                     
                     <h3 className="font-semibold text-white">{subcategory.name || 'Untitled'}</h3>
                     <p className="text-gray-300 text-sm">{subcategory.des || subcategory.description || 'No description'}</p>
-                    {subcategory.categoryName && (
-                      <p className="text-gray-400 text-xs mt-1">Category: {subcategory.categoryName}</p>
+                    {(subcategory.categoryName || subcategory.category_name) && (
+                      <p className="text-gray-400 text-xs mt-1">Category: {subcategory.categoryName || subcategory.category_name}</p>
                     )}
                     
                     <div className="mt-2 flex justify-between items-center">

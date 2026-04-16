@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
 import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import CategoryEdit from './CategoryEdit';
-import Toast from '../Toast';
+import LoadingAnimation from '../LoadingAnimation';
+import useToast from '../../hooks/useToast';
 
 const Category = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -10,7 +11,8 @@ const Category = () => {
   const [isEditSidebarOpen, setIsEditSidebarOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(null);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [toast, setToast] = useState(null);
+  
+  const { showSuccess, showError } = useToast();
   
   // API state
   const [categories, setCategories] = useState([]);
@@ -64,11 +66,11 @@ const Category = () => {
       fetchCategories();
       
       // Show success message
-      setToast({ message: 'Category deleted successfully', type: 'success' });
+      showSuccess('Category deleted successfully');
     } catch (err) {
       console.error('Error deleting category:', err);
       const errorMessage = err.response?.data?.message || 'Failed to delete category';
-      setToast({ message: errorMessage, type: 'error' });
+      showError(errorMessage);
     } finally {
       // Reset state after deletion
       setShowDeleteModal(false);
@@ -111,15 +113,6 @@ const Category = () => {
 
   return (
     <>
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-      
       <div className="p-6">
         <div className="bg-[#464859] rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
@@ -137,9 +130,8 @@ const Category = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
-              <div className="col-span-full text-center py-8">
-                <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-400 mt-2">Loading categories...</p>
+              <div className="col-span-full">
+                <LoadingAnimation />
               </div>
             ) : error ? (
               <div className="col-span-full text-center py-8 text-red-400">

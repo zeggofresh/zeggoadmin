@@ -13,14 +13,60 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide scrollbar utility class */
+/* Hide scrollbar utility class - keeps functionality, hides visual appearance */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  scrollbar-width: thin;  /* Firefox - thin scrollbar */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none !important;  /* Chrome, Safari and Opera */
+  width: 6px;  /* Chrome, Safari - very thin but functional */
+  height: 6px;
+}
+
+.scrollbar-hide::-webkit-scrollbar-track {
+  background: transparent;  /* Hide track */
+}
+
+.scrollbar-hide::-webkit-scrollbar-thumb {
+  background: transparent;  /* Hide thumb by default */
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.scrollbar-hide:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);  /* Show on hover very subtly */
+}
+
+/* Global scrollbar styling - minimal and subtle */
+html, body, * {
+  scrollbar-width: thin;  /* Firefox - thin */
+}
+
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar, 
+*::-webkit-scrollbar {
+  width: 8px;  /* Chrome, Safari - standard thin size */
+  height: 8px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: transparent;  /* Transparent track */
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);  /* Very subtle thumb */
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+html:hover::-webkit-scrollbar-thumb,
+body:hover::-webkit-scrollbar-thumb,
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);  /* Slightly more visible on hover */
 }
 
 /* Reset default margins and paddings */

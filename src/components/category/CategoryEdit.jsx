@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
-import Toast from '../Toast';
+import useToast from '../../hooks/useToast';
 
 const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) => {
   const [editedCategory, setEditedCategory] = useState({
     name: '',
     description: '',
     image: null,
-    imageUrl: null
+    imageUrl: null,
+    image2: null,
+    imageUrl2: null,
+    image3: null,
+    imageUrl3: null,
+    image4: null,
+    imageUrl4: null
   });
-  const [toast, setToast] = useState(null);
+  const [saving, setSaving] = useState(false);
+  
+  const { showSuccess, showError } = useToast();
 
   // Update the form when category prop changes or when switching between add/edit modes
   useEffect(() => {
@@ -22,7 +30,13 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
         name: '',
         description: '',
         image: null,
-        imageUrl: null
+        imageUrl: null,
+        image2: null,
+        imageUrl2: null,
+        image3: null,
+        imageUrl3: null,
+        image4: null,
+        imageUrl4: null
       });
     } else if (category) {
       // Populate the form with existing category data for editing
@@ -46,7 +60,13 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
         name: category.name || '',
         description: category.description || '',
         image: category.image || null,
-        imageUrl: imageUrl // Store the full URL for preview
+        imageUrl: imageUrl,
+        image2: category.img2 || null,
+        imageUrl2: category.img2 ? (category.img2.startsWith('http') ? category.img2 : `https://zegapi.zeggo.in/${category.img2.replace(/^\//, '')}`) : null,
+        image3: category.img3 || null,
+        imageUrl3: category.img3 ? (category.img3.startsWith('http') ? category.img3 : `https://zegapi.zeggo.in/${category.img3.replace(/^\//, '')}`) : null,
+        image4: category.img4 || null,
+        imageUrl4: category.img4 ? (category.img4.startsWith('http') ? category.img4 : `https://zegapi.zeggo.in/${category.img4.replace(/^\//, '')}`) : null
       });
     }
   }, [category, isAddingCategory]);
@@ -59,17 +79,99 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
     }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setEditedCategory(prev => ({
-        ...prev,
-        image: file
-      }));
+  const handleImageChange = (imageNumber) => (e) => {
+    try {
+      const file = e.target.files[0];
+      if (file) {
+        // iPhone compatibility: Handle HEIC and all image types
+        console.log(`📸 Image ${imageNumber} selected:`, {
+          name: file.name,
+          type: file.type || 'unknown (will be handled)',
+          size: `${(file.size / 1024).toFixed(2)} KB`,
+          sizeMB: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+          isHEIC: file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic'
+        });
+        
+        // Accept all image types including HEIC from iPhone
+        // Modern browsers and backend can handle HEIC
+        // Create a local URL for the selected file to show preview
+        const localImageUrl = URL.createObjectURL(file);
+        
+        setEditedCategory(prev => ({
+          ...prev,
+          [`image${imageNumber === 1 ? '' : imageNumber}`]: file,
+          [`imageUrl${imageNumber === 1 ? '' : imageNumber}`]: localImageUrl
+        }));
+      }
+    } catch (error) {
+      console.error(`Error loading image ${imageNumber}:`, error);
+      showError(`Failed to load image ${imageNumber}. Please try again or use a different image.`);
     }
   };
 
+  // Helper function to render image upload box
+  const renderImageUploadBox = (imageNumber, imageUrl, imageData, onChangeHandler) => {
+    return (
+      <div className="relative group">
+        <div className="flex items-center justify-center w-full">
+          <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-700 hover:bg-gray-600 transition-all overflow-hidden">
+            {(() => {
+              if (imageUrl) {
+                return (
+                  <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+                    <img 
+                      src={imageUrl} 
+                      alt={`Image ${imageNumber}`} 
+                      className="w-full h-32 object-contain rounded-lg mb-2 shadow-lg"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error';
+                      }}
+                    />
+                    <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                      <span className="bg-black bg-opacity-70 text-white px-3 py-1 rounded-lg text-xs font-medium">
+                        📷 Click to change
+                      </span>
+                    </div>
+                  </div>
+                );
+              } else if (imageData && typeof imageData !== 'string') {
+                return (
+                  <div className="flex flex-col items-center justify-center pt-4 pb-4">
+                    <svg className="w-12 h-12 mb-3 text-blue-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                    </svg>
+                    <p className="text-sm text-white font-medium">{imageData.name}</p>
+                    <p className="text-xs text-gray-400 mt-1">New file selected</p>
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="flex flex-col items-center justify-center pt-4 pb-4">
+                    <svg className="w-12 h-12 mb-3 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                    </svg>
+                    <p className="text-sm font-semibold text-white mb-1">
+                      <span className="font-semibold">Click to upload</span>
+                    </p>
+                    <p className="text-xs text-gray-400">Any image format</p>
+                  </div>
+                );
+              }
+            })()}
+            <input 
+              type="file" 
+              className="hidden" 
+              onChange={onChangeHandler(imageNumber)}
+              accept="image/*,image/heic,image/heif,.heic,.heif"
+            />
+          </label>
+        </div>
+      </div>
+    );
+  };
+
   const handleSave = async () => {
+    setSaving(true);
     try {
       if (isAddingCategory) {
         // POST - Create new category
@@ -78,6 +180,15 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
         formData.append('des', editedCategory.description);  // API uses 'des' not 'description'
         if (editedCategory.image && typeof editedCategory.image !== 'string') {
           formData.append('img', editedCategory.image);  // API uses 'img' not 'image'
+        }
+        if (editedCategory.image2 && typeof editedCategory.image2 !== 'string') {
+          formData.append('img2', editedCategory.image2);
+        }
+        if (editedCategory.image3 && typeof editedCategory.image3 !== 'string') {
+          formData.append('img3', editedCategory.image3);
+        }
+        if (editedCategory.image4 && typeof editedCategory.image4 !== 'string') {
+          formData.append('img4', editedCategory.image4);
         }
 
         console.log('Sending POST request with FormData:', {
@@ -90,12 +201,13 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 60000, // 60 seconds for large uploads
         });
         
         console.log('POST Category Response:', response.data);
         
         const successMessage = response.data?.message || 'Category created successfully!';
-        setToast({ message: successMessage, type: 'success' });
+        showSuccess(successMessage);
         onSave({ ...editedCategory, id: response.data?.data?.id || response.data?.id || response.data?.data?._id });
       } else {
         // PUT - Update existing category
@@ -105,6 +217,15 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
         formData.append('des', editedCategory.description);  // API uses 'des'
         if (editedCategory.image && typeof editedCategory.image !== 'string') {
           formData.append('img', editedCategory.image);  // API uses 'img'
+        }
+        if (editedCategory.image2 instanceof File) {
+          formData.append('img2', editedCategory.image2);
+        }
+        if (editedCategory.image3 instanceof File) {
+          formData.append('img3', editedCategory.image3);
+        }
+        if (editedCategory.image4 instanceof File) {
+          formData.append('img4', editedCategory.image4);
         }
 
         console.log('Sending PUT request to:', `/api/zeggo/categories/${categoryId}`);
@@ -118,12 +239,13 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 60000, // 60 seconds for large uploads
         });
         
         console.log('PUT Category Response:', response.data);
         
         const successMessage = response.data?.message || 'Category updated successfully!';
-        setToast({ message: successMessage, type: 'success' });
+        showSuccess(successMessage);
         onSave(editedCategory);
       }
     } catch (err) {
@@ -131,10 +253,24 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
       console.error('Error response:', err.response);
       console.error('Error data:', err.response?.data);
       console.error('Error status:', err.response?.status);
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
       
       let errorMessage = 'Failed to save category';
       
-      if (err.response?.data?.message) {
+      // Network error (no response from server)
+      if (!err.response) {
+        errorMessage = 'Network error - Please check your internet connection or backend server';
+        console.error('⚠️ No response received from server. Possible causes:');
+        console.error('  - Backend server is down');
+        console.error('  - Network connectivity issue');
+        console.error('  - CORS policy blocking the request');
+        console.error('  - Upload timeout (large file)');
+        console.error('  - Request was cancelled');
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Upload timeout - Image is too large. Please try a smaller image or check your connection.';
+        console.error('⏱️ Request timed out:', err.message);
+      } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
@@ -142,7 +278,9 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
         errorMessage = err.message;
       }
       
-      setToast({ message: errorMessage, type: 'error' });
+      showError(errorMessage);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -151,15 +289,6 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
 
   return (
     <>
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-      
       {/* Fixed positioning container */}
       <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Sidebar panel - slides from right */}
@@ -184,76 +313,39 @@ const CategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingCategory }) 
 
           {/* Body */}
           <div className="px-4 py-5 flex-grow overflow-y-auto scrollbar-hide">
-            {/* Image Upload Box */}
+            {/* Image Upload Boxes */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-white mb-2">
-                Category Image
+                Category Images <span className="text-red-400">*</span>
               </label>
-              <div className="relative group">
-                <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-700 hover:bg-gray-600 transition-all overflow-hidden">
-                    {(() => {
-                      console.log('Render check - imageUrl:', editedCategory.imageUrl);
-                      console.log('Render check - image:', editedCategory.image);
-                      console.log('Render check - image type:', typeof editedCategory.image);
-                      
-                      if (editedCategory.imageUrl) {
-                        return (
-                          <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
-                            <img 
-                              src={editedCategory.imageUrl} 
-                              alt="Current Category" 
-                              className="w-full h-48 object-contain rounded-lg mb-3 shadow-lg"
-                              onError={(e) => {
-                                console.error('Failed to load image:', editedCategory.imageUrl);
-                                e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error';
-                              }}
-                              onLoad={() => {
-                                console.log('Image loaded successfully:', editedCategory.imageUrl);
-                              }}
-                            />
-                            <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                              <span className="bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                                📷 Click to change image
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      } else if (editedCategory.image && typeof editedCategory.image !== 'string') {
-                        return (
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg className="w-16 h-16 mb-4 text-blue-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                            </svg>
-                            <p className="text-base text-white font-medium">{editedCategory.image.name}</p>
-                            <p className="text-sm text-gray-400 mt-2">New file selected</p>
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg className="w-16 h-16 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                            </svg>
-                            <p className="text-lg font-semibold text-white mb-2">
-                              <span className="font-semibold">Click to upload</span> or drag and drop
-                            </p>
-                            <p className="text-sm text-gray-400">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
-                          </div>
-                        );
-                      }
-                    })()}
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleImageChange}
-                      accept="image/*"
-                    />
-                  </label>
-                </div>
+              <p className="text-xs text-gray-400 mb-3">First image is mandatory. Additional images are optional.</p>
+              
+              {/* Image 1 - Mandatory */}
+              <div className="mb-3">
+                <p className="text-xs text-white mb-1">Image 1 (Required)</p>
+                {renderImageUploadBox(1, editedCategory.imageUrl, editedCategory.image, handleImageChange)}
               </div>
+
+              {/* Image 2 - Optional */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1">Image 2 (Optional)</p>
+                {renderImageUploadBox(2, editedCategory.imageUrl2, editedCategory.image2, handleImageChange)}
+              </div>
+
+              {/* Image 3 - Optional */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1">Image 3 (Optional)</p>
+                {renderImageUploadBox(3, editedCategory.imageUrl3, editedCategory.image3, handleImageChange)}
+              </div>
+
+              {/* Image 4 - Optional */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1">Image 4 (Optional)</p>
+                {renderImageUploadBox(4, editedCategory.imageUrl4, editedCategory.image4, handleImageChange)}
+              </div>
+              
               <p className="text-xs text-gray-400 mt-2 text-center">
-                💡 Recommended size: 800x600 pixels for best quality
+                💡 Supports all image types and sizes • Camera photos accepted
               </p>
             </div>
 

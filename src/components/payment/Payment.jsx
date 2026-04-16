@@ -1,8 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Pagination from './Pagination';
+import { toast } from 'react-toastify';
+
+// Load Razorpay script dynamically
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => {
+      resolve(true);
+    };
+    script.onerror = () => {
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
 
 // Simple modal component
-const Modal = ({ isOpen, onClose, onConfirm, title, children }) => {
+const Modal = ({ isOpen, onClose, onConfirm, title, children, onPay, razorpayLoaded }) => {
   if (!isOpen) return null;
 
   return (
@@ -28,10 +44,11 @@ const Modal = ({ isOpen, onClose, onConfirm, title, children }) => {
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={onPay}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            disabled={!razorpayLoaded}
           >
-            Confirm Payment
+            {!razorpayLoaded ? 'Loading...' : 'Pay with Razorpay'}
           </button>
         </div>
       </div>
@@ -44,7 +61,23 @@ const Payment = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const itemsPerPage = 10;
+  
+  // Load Razorpay on component mount
+  useEffect(() => {
+    const loadScript = async () => {
+      const loaded = await loadRazorpayScript();
+      if (loaded) {
+        console.log('✅ Razorpay script loaded successfully');
+        setRazorpayLoaded(true);
+      } else {
+        console.error('❌ Failed to load Razorpay');
+        toast.error('Failed to load payment gateway. Please refresh the page.');
+      }
+    };
+    loadScript();
+  }, []);
   
   // Sample data for different payment types
   const [deliveryBoyData, setDeliveryBoyData] = useState([
@@ -94,34 +127,106 @@ const Payment = () => {
     setShowModal(true);
   };
 
-  // Process payment
-  const processPayment = () => {
-    if (selectedPayment) {
-      // Update the data based on payment type
-      if (selectedPayment.type === 'Delivery Boy') {
-        setDeliveryBoyData(prevData => 
-          prevData.map(boy => 
-            boy.name === selectedPayment.recipient 
-              ? { ...boy, pendingPayment: '₹0' } 
-              : boy
-          )
-        );
-      } else if (selectedPayment.type === 'Supplier') {
-        setSupplierData(prevData => 
-          prevData.map(supplier => 
-            supplier.name === selectedPayment.recipient 
-              ? { ...supplier, pendingPayment: '₹0' } 
-              : supplier
-          )
-        );
-      }
+  // Process Razorpay payment
+  const processPayment = async () => {
+    if (!selectedPayment) return;
+
+    if (!razorpayLoaded) {
+      toast.error('Payment gateway is not loaded. Please refresh the page.');
+      return;
+    }
+
+    try {
+      // Remove ₹ symbol and convert to number
+      const amountInRupees = parseFloat(selectedPayment.amount.replace(/[₹,]/g, ''));
+      const amountInPaise = Math.round(amountInRupees * 100);
+
+      console.log('Initiating payment:', {
+        recipient: selectedPayment.recipient,
+        amount: selectedPayment.amount,
+        amountInPaise: amountInPaise,
+        type: selectedPayment.type
+      });
+
+      // Create Razorpay order options
+      const options = {
+        key: 'rzp_live_STONgTdVGEXe3x', // Your Razorpay Key ID
+        amount: amountInPaise,
+        currency: 'INR',
+        name: 'Zeggo Admin Panel',
+        description: `Payment to ${selectedPayment.type} - ${selectedPayment.recipient}`,
+        handler: function (response) {
+          // Payment successful
+          console.log('Payment Success:', response);
+          
+          // Show success message
+          toast.success(`Payment Successful! Transaction ID: ${response.razorpay_payment_id}, Amount: ${selectedPayment.amount}, Recipient: ${selectedPayment.recipient}`);
+          
+          // Update UI - mark as paid
+          if (selectedPayment.type === 'Delivery Boy') {
+            setDeliveryBoyData(prevData => 
+              prevData.map(boy => 
+                boy.name === selectedPayment.recipient 
+                  ? { ...boy, pendingPayment: '₹0' } 
+                  : boy
+              )
+            );
+          } else if (selectedPayment.type === 'Supplier') {
+            setSupplierData(prevData => 
+              prevData.map(supplier => 
+                supplier.name === selectedPayment.recipient 
+                  ? { ...supplier, pendingPayment: '₹0' } 
+                  : supplier
+              )
+            );
+          }
+          
+          // Close modal
+          setShowModal(false);
+          setSelectedPayment(null);
+          
+          // In production, save transaction details to your backend
+          // await api.post('/api/zeggo/payment-transaction', {
+          //   razorpay_payment_id: response.razorpay_payment_id,
+          //   razorpay_order_id: response.razorpay_order_id,
+          //   razorpay_signature: response.razorpay_signature,
+          //   recipient: selectedPayment.recipient,
+          //   amount: selectedPayment.amount,
+          //   type: selectedPayment.type
+          // });
+        },
+        prefill: {
+          name: selectedPayment.recipient,
+          email: 'admin@zeggo.in',
+          contact: '9999999999'
+        },
+        notes: {
+          recipient: selectedPayment.recipient,
+          type: selectedPayment.type,
+          admin_panel: 'true'
+        },
+        theme: {
+          color: '#464859'
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
       
-      // Close modal
+      rzp.on('payment.failed', function (response) {
+        // Payment failed
+        console.error('Payment Failed:', response.error);
+        toast.error(`Payment Failed: ${response.error.description} (Code: ${response.error.code})`);
+        setShowModal(false);
+        setSelectedPayment(null);
+      });
+
+      rzp.open();
+      
+    } catch (error) {
+      console.error('Payment Error:', error);
+      toast.error('Payment processing failed. Please try again.');
       setShowModal(false);
       setSelectedPayment(null);
-      
-      // Show success message (in a real app, you might want to use a toast notification)
-      alert(`Payment of ${selectedPayment.amount} to ${selectedPayment.recipient} processed successfully!`);
     }
   };
 
@@ -271,6 +376,8 @@ const Payment = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onConfirm={processPayment}
+        onPay={processPayment}
+        razorpayLoaded={razorpayLoaded}
         title="Confirm Payment"
       >
         {selectedPayment && (

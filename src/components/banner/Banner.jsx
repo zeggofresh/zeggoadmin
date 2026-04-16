@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
-import Toast from '../Toast';
+import LoadingAnimation from '../LoadingAnimation';
+import useToast from '../../hooks/useToast';
 
 const Banner = () => {
   const [banners, setBanners] = useState([]);
@@ -10,9 +11,10 @@ const Banner = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [toast, setToast] = useState(null);
   const [bannerName, setBannerName] = useState('');
   const [bannerDescription, setBannerDescription] = useState('');
+  
+  const { showSuccess, showError } = useToast();
   
   // Edit mode state
   const [editingBanner, setEditingBanner] = useState(null);
@@ -76,6 +78,14 @@ const Banner = () => {
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
+      // iPhone compatibility: Handle HEIC and all image types
+      console.log('📸 Banner image selected:', {
+        name: file.name,
+        type: file.type || 'unknown (will be handled)',
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        isHEIC: file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic'
+      });
+      
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
       setError(null);
@@ -106,7 +116,7 @@ const Banner = () => {
 
       console.log('POST Response:', response.data); // Debug log
       const successMessage = response.data?.message || 'Banner uploaded successfully!';
-      setToast({ message: successMessage, type: 'success' });
+      showSuccess(successMessage);
       setSelectedFile(null);
       setPreviewUrl(null);
       setBannerName('');
@@ -134,7 +144,7 @@ const Banner = () => {
       await api.delete(`/api/zeggo/banners/${bannerId}`);
       
       console.log('DELETE Response:', response?.data); // Debug log
-      setToast({ message: response?.data?.message || 'Banner deleted successfully!', type: 'success' });
+      showSuccess('Banner deleted successfully!');
       fetchBanners(); // Refresh banner list
       
       // Clear success message after 3 seconds
@@ -200,7 +210,7 @@ const Banner = () => {
         throw new Error('Banner ID not found in response');
       }
       
-      setToast({ message: response.data?.message || 'Banner updated successfully!', type: 'success' });
+      showSuccess(response.data?.message || 'Banner updated successfully!');
       setShowEditModal(false);
       setEditingBanner(null);
       setSelectedFile(null);
@@ -225,15 +235,6 @@ const Banner = () => {
   };
   return (
     <>
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-      
       <div className="p-6">
       <div className="bg-[#464859] rounded-lg shadow-md p-6 mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Banner Management</h1>
@@ -290,7 +291,7 @@ const Banner = () => {
           <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,image/heic,image/heif,.heic,.heif"
               onChange={handleFileSelect}
               className="hidden"
               id="banner-upload"
@@ -321,7 +322,7 @@ const Banner = () => {
               Click to upload or drag and drop
             </p>
             <p className="text-gray-500 text-xs mb-4">
-              Accepted formats: JPG, PNG, GIF (Max 5MB)
+              Accepted formats: All image types supported • No size limit
             </p>
             
             <button
@@ -351,10 +352,7 @@ const Banner = () => {
         <h2 className="text-lg font-semibold text-white mb-4">Existing Banners</h2>
         
         {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-gray-400 mt-2">Loading banners...</p>
-          </div>
+          <LoadingAnimation />
         ) : banners.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
             No banners found. Upload your first banner above.
@@ -509,13 +507,13 @@ const Banner = () => {
                           type="file" 
                           className="hidden" 
                           onChange={handleFileSelect}
-                          accept="image/*"
+                          accept="image/*,image/heic,image/heif,.heic,.heif"
                         />
                       </label>
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-2 text-center">
-                    💡 Recommended size: 1920x600 pixels for best quality • Leave empty to keep current image
+                    💡 Supports all image types and sizes • Camera photos accepted
                   </p>
                 </div>
 

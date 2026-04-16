@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
-import Toast from '../Toast';
+import useToast from '../../hooks/useToast';
 
 const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, isAddingSubcategory }) => {
   const [editedSubcategory, setEditedSubcategory] = useState({
@@ -8,14 +8,27 @@ const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, is
     description: '',
     categoryId: '',
     image: null,
-    imageUrl: null
+    imageUrl: null,
+    image2: null,
+    imageUrl2: null,
+    image3: null,
+    imageUrl3: null,
+    image4: null,
+    imageUrl4: null
   });
-  const [toast, setToast] = useState(null);
+  
+  const [allSubcategories, setAllSubcategories] = useState([]);
+  const { showSuccess, showError } = useToast();
 
   // Update the form when subcategory prop changes or when switching between add/edit modes
   useEffect(() => {
     console.log('SubcategoryEdit - subcategory prop:', subcategory);
     console.log('SubcategoryEdit - isAddingSubcategory:', isAddingSubcategory);
+    
+    // Fetch all subcategories for dropdown when component opens
+    if (isOpen) {
+      fetchAllSubcategories();
+    }
     
     if (isAddingSubcategory) {
       // Clear the form for adding a new subcategory
@@ -24,7 +37,13 @@ const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, is
         description: '',
         categoryId: categories[0]?.id || categories[0]?._id || '',
         image: null,
-        imageUrl: null
+        imageUrl: null,
+        image2: null,
+        imageUrl2: null,
+        image3: null,
+        imageUrl3: null,
+        image4: null,
+        imageUrl4: null
       });
     } else if (subcategory) {
       // Populate the form with existing subcategory data for editing
@@ -47,12 +66,36 @@ const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, is
       setEditedSubcategory({
         name: subcategory.name || '',
         description: subcategory.description || '',
-        categoryId: subcategory.categoryId || subcategory.category?.id || subcategory.category?._id || '',
-        image: subcategory.image || null,
-        imageUrl: imageUrl // Store the full URL for preview
+        categoryId: subcategory.categoryId || subcategory.category_id || subcategory.category?.id || subcategory.category?._id || '',
+        image: subcategory.image || subcategory.img || null,
+        imageUrl: imageUrl,
+        image2: subcategory.img2 || null,
+        imageUrl2: subcategory.img2 ? (subcategory.img2.startsWith('http') ? subcategory.img2 : `https://zegapi.zeggo.in/${subcategory.img2.replace(/^\//, '')}`) : null,
+        image3: subcategory.img3 || null,
+        imageUrl3: subcategory.img3 ? (subcategory.img3.startsWith('http') ? subcategory.img3 : `https://zegapi.zeggo.in/${subcategory.img3.replace(/^\//, '')}`) : null,
+        image4: subcategory.img4 || null,
+        imageUrl4: subcategory.img4 ? (subcategory.img4.startsWith('http') ? subcategory.img4 : `https://zegapi.zeggo.in/${subcategory.img4.replace(/^\//, '')}`) : null
       });
     }
-  }, [subcategory, isAddingSubcategory, categories]);
+  }, [subcategory, isAddingSubcategory, categories, isOpen]);
+
+  const fetchAllSubcategories = async () => {
+    try {
+      const response = await api.get('/api/zeggo/subcategories');
+      console.log('GET All Subcategories for Dropdown:', response.data);
+      
+      let subcategoriesData = [];
+      if (response.data?.data) {
+        subcategoriesData = Array.isArray(response.data.data) ? response.data.data : [];
+      } else if (Array.isArray(response.data)) {
+        subcategoriesData = response.data;
+      }
+      
+      setAllSubcategories(subcategoriesData);
+    } catch (err) {
+      console.error('Error fetching subcategories for dropdown:', err);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,14 +105,97 @@ const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, is
     }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setEditedSubcategory(prev => ({
-        ...prev,
-        image: file
-      }));
+  const handleImageChange = (imageNumber) => (e) => {
+    try {
+      const file = e.target.files[0];
+      if (file) {
+        // iPhone compatibility: Handle HEIC and all image types
+        console.log(`📸 Image ${imageNumber} selected:`, {
+          name: file.name,
+          type: file.type || 'unknown (will be handled)',
+          size: `${(file.size / 1024).toFixed(2)} KB`,
+          sizeMB: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+          isHEIC: file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic'
+        });
+        
+        // Accept all image types including HEIC from iPhone
+        // Modern browsers and backend can handle HEIC
+        // Create a local URL for the selected file to show preview
+        const localImageUrl = URL.createObjectURL(file);
+        
+        setEditedSubcategory(prev => ({
+          ...prev,
+          [`image${imageNumber === 1 ? '' : imageNumber}`]: file,
+          [`imageUrl${imageNumber === 1 ? '' : imageNumber}`]: localImageUrl
+        }));
+      }
+    } catch (error) {
+      console.error(`Error loading image ${imageNumber}:`, error);
+      showError(`Failed to load image ${imageNumber}. Please try again or use a different image.`);
     }
+  };
+
+  // Helper function to render image upload box
+  const renderImageUploadBox = (imageNumber, imageUrl, imageData, onChangeHandler) => {
+    const suffix = imageNumber === 1 ? '' : imageNumber;
+    
+    return (
+      <div className="relative group">
+        <div className="flex items-center justify-center w-full">
+          <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-700 hover:bg-gray-600 transition-all overflow-hidden">
+            {(() => {
+              if (imageUrl) {
+                return (
+                  <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+                    <img 
+                      src={imageUrl} 
+                      alt={`Image ${imageNumber}`} 
+                      className="w-full h-32 object-contain rounded-lg mb-2 shadow-lg"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error';
+                      }}
+                    />
+                    <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                      <span className="bg-black bg-opacity-70 text-white px-3 py-1 rounded-lg text-xs font-medium">
+                        📷 Click to change
+                      </span>
+                    </div>
+                  </div>
+                );
+              } else if (imageData && typeof imageData !== 'string') {
+                return (
+                  <div className="flex flex-col items-center justify-center pt-4 pb-4">
+                    <svg className="w-12 h-12 mb-3 text-blue-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                    </svg>
+                    <p className="text-sm text-white font-medium">{imageData.name}</p>
+                    <p className="text-xs text-gray-400 mt-1">New file selected</p>
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="flex flex-col items-center justify-center pt-4 pb-4">
+                    <svg className="w-12 h-12 mb-3 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                    </svg>
+                    <p className="text-sm font-semibold text-white mb-1">
+                      <span className="font-semibold">Click to upload</span>
+                    </p>
+                    <p className="text-xs text-gray-400">Any image format</p>
+                  </div>
+                );
+              }
+            })()}
+            <input 
+              type="file" 
+              className="hidden" 
+              onChange={onChangeHandler(imageNumber)}
+              accept="image/*,image/heic,image/heif,.heic,.heif"
+            />
+          </label>
+        </div>
+      </div>
+    );
   };
 
   const handleSave = async () => {
@@ -78,48 +204,133 @@ const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, is
         // POST - Create new subcategory
         const formData = new FormData();
         formData.append('name', editedSubcategory.name);
-        formData.append('description', editedSubcategory.description);
-        formData.append('categoryId', editedSubcategory.categoryId);
+        formData.append('des', editedSubcategory.description);
+        formData.append('category_id', editedSubcategory.categoryId);
         if (editedSubcategory.image && typeof editedSubcategory.image !== 'string') {
-          formData.append('image', editedSubcategory.image);
+          formData.append('img', editedSubcategory.image);
         }
+        if (editedSubcategory.image2 && typeof editedSubcategory.image2 !== 'string') {
+          formData.append('img2', editedSubcategory.image2);
+        }
+        if (editedSubcategory.image3 && typeof editedSubcategory.image3 !== 'string') {
+          formData.append('img3', editedSubcategory.image3);
+        }
+        if (editedSubcategory.image4 && typeof editedSubcategory.image4 !== 'string') {
+          formData.append('img4', editedSubcategory.image4);
+        }
+
+        console.log('Sending POST request with FormData:', {
+          name: editedSubcategory.name,
+          des: editedSubcategory.description,
+          category_id: editedSubcategory.categoryId,
+          hasImage: !!editedSubcategory.image && typeof editedSubcategory.image !== 'string',
+          imageSizes: {
+            img1: editedSubcategory.image?.size ? `${(editedSubcategory.image.size / 1024 / 1024).toFixed(2)}MB` : 'N/A',
+            img2: editedSubcategory.image2?.size ? `${(editedSubcategory.image2.size / 1024 / 1024).toFixed(2)}MB` : 'N/A',
+          }
+        });
 
         const response = await api.post('/api/zeggo/subcategories', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 60000, // 60 seconds for large uploads
         });
         console.log('POST Subcategory Response:', response.data);
         
         const successMessage = response.data?.message || 'Subcategory created successfully!';
-        setToast({ message: successMessage, type: 'success' });
+        showSuccess(successMessage);
         onSave({ ...editedSubcategory, id: response.data?.data?.id || response.data?.id });
       } else {
         // PUT - Update existing subcategory
         const subcategoryId = subcategory.id || subcategory._id;
         const formData = new FormData();
         formData.append('name', editedSubcategory.name);
-        formData.append('description', editedSubcategory.description);
-        formData.append('categoryId', editedSubcategory.categoryId);
-        if (editedSubcategory.image && typeof editedSubcategory.image !== 'string') {
-          formData.append('image', editedSubcategory.image);
+        formData.append('des', editedSubcategory.description);
+        formData.append('category_id', editedSubcategory.categoryId);
+        
+        // Check if image is a File object (new upload) or string (existing URL)
+        const isNewImage = editedSubcategory.image instanceof File;
+        console.log('📸 Image check:', {
+          imageValue: editedSubcategory.image,
+          imageType: typeof editedSubcategory.image,
+          isFile: isNewImage,
+          imageUrl: editedSubcategory.imageUrl
+        });
+        
+        if (isNewImage) {
+          formData.append('img', editedSubcategory.image);
+          console.log('✅ New image attached:', editedSubcategory.image.name, 'Type:', editedSubcategory.image.type);
+        } else {
+          console.log('⚠️ No new image - keeping existing image');
         }
+
+        // Append additional images if they are new files
+        if (editedSubcategory.image2 instanceof File) {
+          formData.append('img2', editedSubcategory.image2);
+        }
+        if (editedSubcategory.image3 instanceof File) {
+          formData.append('img3', editedSubcategory.image3);
+        }
+        if (editedSubcategory.image4 instanceof File) {
+          formData.append('img4', editedSubcategory.image4);
+        }
+
+        console.log('Sending PUT request to:', `/api/zeggo/subcategories/${subcategoryId}`);
+        console.log('FormData:', {
+          name: editedSubcategory.name,
+          des: editedSubcategory.description,
+          category_id: editedSubcategory.categoryId,
+          hasNewImage: isNewImage,
+          imageSizes: {
+            img1: editedSubcategory.image?.size ? `${(editedSubcategory.image.size / 1024 / 1024).toFixed(2)}MB` : 'N/A',
+            img2: editedSubcategory.image2?.size ? `${(editedSubcategory.image2.size / 1024 / 1024).toFixed(2)}MB` : 'N/A',
+          }
+        });
 
         const response = await api.put(`/api/zeggo/subcategories/${subcategoryId}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 60000, // 60 seconds for large uploads
         });
         console.log('PUT Subcategory Response:', response.data);
         
         const successMessage = response.data?.message || 'Subcategory updated successfully!';
-        setToast({ message: successMessage, type: 'success' });
+        showSuccess(successMessage);
         onSave(editedSubcategory);
       }
     } catch (err) {
-      console.error('Error saving subcategory:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to save subcategory';
-      setToast({ message: errorMessage, type: 'error' });
+      console.error('❌ Error saving subcategory:', err);
+      console.error('Error response:', err.response);
+      console.error('Error data:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
+      
+      let errorMessage = 'Failed to save subcategory';
+      
+      // Network error (no response from server)
+      if (!err.response) {
+        errorMessage = 'Network error - Please check your internet connection or backend server';
+        console.error('⚠️ No response received from server. Possible causes:');
+        console.error('  - Backend server is down');
+        console.error('  - Network connectivity issue');
+        console.error('  - CORS policy blocking the request');
+        console.error('  - Upload timeout (large file)');
+        console.error('  - Request was cancelled');
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Upload timeout - Image is too large. Please try a smaller image or check your connection.';
+        console.error('⏱️ Request timed out:', err.message);
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      showError(errorMessage);
     }
   };
 
@@ -128,15 +339,6 @@ const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, is
 
   return (
     <>
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-      
       {/* Fixed positioning container */}
       <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Sidebar panel - slides from right */}
@@ -174,84 +376,56 @@ const SubcategoryEdit = ({ subcategory, categories, onSave, onCancel, isOpen, is
                 className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-600 rounded-md px-3 py-2 border bg-gray-700 text-white"
               >
                 <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category.id || category._id} value={category.id || category._id}>
-                    {category.name || 'Untitled'}
-                  </option>
-                ))}
+                <optgroup label="Categories">
+                  {categories.map((category) => (
+                    <option key={category.id || category._id} value={category.id || category._id}>
+                      {category.name || 'Untitled'}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Subcategories">
+                  {allSubcategories.map((sub) => (
+                    <option key={sub.id || sub._id} value={sub.id || sub._id}>
+                      {sub.name || 'Untitled'} (Subcategory)
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
-            {/* Image Upload Box */}
+            {/* Image Upload Boxes */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-white mb-2">
-                Subcategory Image
+                Subcategory Images <span className="text-red-400">*</span>
               </label>
-              <div className="relative group">
-                <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-700 hover:bg-gray-600 transition-all overflow-hidden">
-                    {(() => {
-                      console.log('Render check - imageUrl:', editedSubcategory.imageUrl);
-                      console.log('Render check - image:', editedSubcategory.image);
-                      console.log('Render check - image type:', typeof editedSubcategory.image);
-                      
-                      if (editedSubcategory.imageUrl) {
-                        return (
-                          <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
-                            <img 
-                              src={editedSubcategory.imageUrl} 
-                              alt="Current Subcategory" 
-                              className="w-full h-48 object-contain rounded-lg mb-3 shadow-lg"
-                              onError={(e) => {
-                                console.error('Failed to load image:', editedSubcategory.imageUrl);
-                                e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error';
-                              }}
-                              onLoad={() => {
-                                console.log('Image loaded successfully:', editedSubcategory.imageUrl);
-                              }}
-                            />
-                            <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                              <span className="bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                                📷 Click to change image
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      } else if (editedSubcategory.image && typeof editedSubcategory.image !== 'string') {
-                        return (
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg className="w-16 h-16 mb-4 text-blue-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                            </svg>
-                            <p className="text-base text-white font-medium">{editedSubcategory.image.name}</p>
-                            <p className="text-sm text-gray-400 mt-2">New file selected</p>
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg className="w-16 h-16 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                            </svg>
-                            <p className="text-lg font-semibold text-white mb-2">
-                              <span className="font-semibold">Click to upload</span> or drag and drop
-                            </p>
-                            <p className="text-sm text-gray-400">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
-                          </div>
-                        );
-                      }
-                    })()}
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      onChange={handleImageChange}
-                      accept="image/*"
-                    />
-                  </label>
-                </div>
+              <p className="text-xs text-gray-400 mb-3">First image is mandatory. Additional images are optional.</p>
+              
+              {/* Image 1 - Mandatory */}
+              <div className="mb-3">
+                <p className="text-xs text-white mb-1">Image 1 (Required)</p>
+                {renderImageUploadBox(1, editedSubcategory.imageUrl, editedSubcategory.image, handleImageChange)}
               </div>
+
+              {/* Image 2 - Optional */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1">Image 2 (Optional)</p>
+                {renderImageUploadBox(2, editedSubcategory.imageUrl2, editedSubcategory.image2, handleImageChange)}
+              </div>
+
+              {/* Image 3 - Optional */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1">Image 3 (Optional)</p>
+                {renderImageUploadBox(3, editedSubcategory.imageUrl3, editedSubcategory.image3, handleImageChange)}
+              </div>
+
+              {/* Image 4 - Optional */}
+              <div className="mb-3">
+                <p className="text-xs text-gray-400 mb-1">Image 4 (Optional)</p>
+                {renderImageUploadBox(4, editedSubcategory.imageUrl4, editedSubcategory.image4, handleImageChange)}
+              </div>
+              
               <p className="text-xs text-gray-400 mt-2 text-center">
-                💡 Recommended size: 800x600 pixels for best quality
+                💡 Supports all image types and sizes • Camera photos accepted
               </p>
             </div>
 

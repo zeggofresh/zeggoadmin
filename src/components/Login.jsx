@@ -3,26 +3,38 @@ import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-const navigate = useNavigate();
-const handleLogin = () => {
-  setLoading(true);
+  const navigate = useNavigate();
 
-  setTimeout(() => {
-    setLoading(false);
-    navigate("/dashboard"); // 👈 ONLY CHANGE
-  }, 2000);
-};
+  const handleLogin = () => {
+    setLoading(true);
+
+    // Direct login - no API call
+    setTimeout(() => {
+      // Set a dummy token for protected routes
+      localStorage.setItem('token', 'demo-token-' + Date.now());
+      
+      setLoading(false);
+      navigate("/dashboard");
+    }, 1000);
+  };
+
+  const goToSignup = () => {
+    navigate("/signup");
+  };
+
+  const goToForgotPassword = () => {
+    navigate("/forgot-password");
+  };
 
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-[#eaf3ff] px-4"
+      className="min-h-screen flex items-center justify-center bg-[#464859] px-2 sm:px-4"
       style={{ fontFamily: "'Poppins', sans-serif" }}
     >
-      <div className="w-full max-w-6xl min-h-[560px] bg-white rounded-3xl shadow-xl overflow-hidden flex">
-
+      <div className="w-full max-w-6xl min-h-[500px] sm:min-h-[560px] bg-[#464859] rounded-3xl shadow-xl overflow-hidden flex border border-gray-600 my-4 sm:my-0">
         {/* LEFT BLUE PANEL */}
-        <div className="hidden md:flex w-1/2 relative bg-gradient-to-b from-[#4fa3ff] to-[#2f80ed]">
+        <div className="hidden lg:flex w-1/2 relative bg-gradient-to-b from-[#4fa3ff] to-[#2f80ed]">
           <svg
             className="absolute top-0 left-0 w-full"
             viewBox="0 0 500 150"
@@ -48,12 +60,12 @@ const handleLogin = () => {
         </div>
 
         {/* RIGHT LOGIN FORM */}
-        <div className="w-full md:w-1/2 flex items-center justify-center">
-          <div className="w-full max-w-md px-10">
-            <h2 className="text-center text-2xl font-semibold text-blue-600">
+        <div className="w-full lg:w-1/2 flex items-center justify-center">
+          <div className="w-full max-w-md px-6 sm:px-10 py-8 sm:py-0">
+            <h2 className="text-center text-2xl font-semibold text-blue-400">
               Welcome
             </h2>
-            <p className="text-center text-xs text-gray-500 mb-8">
+            <p className="text-center text-xs text-gray-300 mb-8">
               login in to your account to continue
             </p>
 
@@ -61,16 +73,19 @@ const handleLogin = () => {
               <input
                 type="email"
                 placeholder="Email"
-                className="w-full py-3 px-5 rounded-full bg-green-100 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full py-3 px-5 rounded-full bg-gray-700 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
 
               <input
                 type="password"
                 placeholder="Password"
-                className="w-full py-3 px-5 rounded-full bg-green-100 text-sm text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full py-3 px-5 rounded-full bg-gray-700 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
 
-              <div className="text-right text-xs text-gray-400 cursor-pointer">
+              <div 
+                className="text-right text-xs text-gray-400 cursor-pointer hover:text-blue-300"
+                onClick={goToForgotPassword}
+              >
                 forgot your password?
               </div>
 
@@ -90,14 +105,16 @@ const handleLogin = () => {
             </div>
 
             <p className="text-center text-xs text-gray-400 mt-6">
-              Don’t have an account?
-              <span className="text-blue-500 ml-1 cursor-pointer">
+              Don't have an account?
+              <span 
+                className="text-blue-400 ml-1 cursor-pointer hover:text-blue-300 font-medium"
+                onClick={goToSignup}
+              >
                 Sign Up
               </span>
             </p>
           </div>
         </div>
-
       </div>
     </div>
   );

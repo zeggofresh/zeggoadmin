@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../config/api';
-import Toast from '../Toast';
+import useToast from '../../hooks/useToast';
 
 const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
   const [editedUser, setEditedUser] = useState({
@@ -9,27 +9,47 @@ const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
     role: '',
     status: 'Active'
   });
-  const [toast, setToast] = useState(null);
+  
+  const { showSuccess, showError } = useToast();
 
   // Update the form when user prop changes or when switching between add/edit modes
   useEffect(() => {
-    if (isAddingUser) {
-      // Clear the form for adding a new user
-      setEditedUser({
-        name: '',
-        email: '',
-        role: '',
-        status: 'Active'
-      });
-    } else if (user) {
-      // Populate the form with existing user data for editing
-      setEditedUser({
-        name: user.name || '',
-        email: user.email || '',
-        role: user.role || '',
-        status: user.status || 'Active'
-      });
-    }
+    const fetchUserDetails = async () => {
+      if (isAddingUser) {
+        // Clear the form for adding a new user
+        setEditedUser({
+          name: '',
+          email: '',
+          role: '',
+          status: 'Active'
+        });
+      } else if (user) {
+        try {
+          // GET API - Fetch specific user by ID
+          const userId = user.id || user._id;
+          console.log('Fetching user details for ID:', userId);
+          
+          const response = await api.get(`/api/zeggo/users/${userId}`);
+          console.log('GET User Details Response:', response.data);
+          
+          // Handle different API response structures
+          let userData = response.data?.data || response.data;
+          
+          // Populate the form with ONLY API-fetched user data
+          setEditedUser({
+            name: userData.name || '',
+            email: userData.email || '',
+            role: userData.role || '',
+            status: userData.status || 'Active'
+          });
+        } catch (err) {
+          console.error('Error fetching user details:', err);
+          showError('Failed to load user details');
+        }
+      }
+    };
+
+    fetchUserDetails();
   }, [user, isAddingUser]);
 
   const handleChange = (e) => {
@@ -48,7 +68,7 @@ const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
         console.log('POST User Response:', response.data);
         
         const successMessage = response.data?.message || 'User created successfully!';
-        setToast({ message: successMessage, type: 'success' });
+        showSuccess(successMessage);
         onSave({ ...editedUser, id: response.data?.data?.id || response.data?.id });
       } else {
         // PUT/PATCH - Update existing user
@@ -57,13 +77,13 @@ const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
         console.log('PUT User Response:', response.data);
         
         const successMessage = response.data?.message || 'User updated successfully!';
-        setToast({ message: successMessage, type: 'success' });
+        showSuccess(successMessage);
         onSave(editedUser);
       }
     } catch (err) {
       console.error('Error saving user:', err);
       const errorMessage = err.response?.data?.message || 'Failed to save user';
-      setToast({ message: errorMessage, type: 'error' });
+      showError(errorMessage);
     }
   };
 
@@ -72,17 +92,7 @@ const UserEdit = ({ user, onSave, onCancel, isOpen, isAddingUser }) => {
 
   return (
     <>
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-      
       {/* Fixed positioning container */}
-    // Fixed positioning container
     <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Sidebar panel - slides from right */}
       <div 

@@ -55,7 +55,6 @@ const TrendingCategoryEdit = ({ category, onSave, onCancel, isOpen, isAddingTren
   if (!isOpen) return null;
 
   return (
-    // Fixed positioning container
     <div className="fixed inset-0 z-50 pointer-events-none">
       {/* Sidebar panel - slides from right */}
       <div 

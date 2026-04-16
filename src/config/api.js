@@ -6,6 +6,9 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 60000, // 60 seconds timeout for large image uploads
+  maxContentLength: Infinity,
+  maxBodyLength: Infinity,
 });
 
 // Request interceptor - Add auth token if available
