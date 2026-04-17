@@ -134,7 +134,7 @@ const Dashboard = () => {
       
       // Fetch all data in parallel
       const [usersRes, productsRes, ordersRes, categoriesRes] = await Promise.all([
-        api.get('/api/zeggo/users'),
+        api.get('/api/zeggo/users/getall'),
         api.get('/api/zeggo/products'),
         api.get('/api/zeggo/orders'),
         api.get('/api/zeggo/categories')
